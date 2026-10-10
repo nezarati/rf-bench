@@ -3,12 +3,8 @@
 **A professional, fully client-side VNA post-processor in a single HTML file.**
 No build step, no dependencies, no server, no uploads — your Touchstone data never leaves the browser.
 
-[![CI](https://github.com/USERNAME/rf-bench/actions/workflows/ci.yml/badge.svg)](https://github.com/USERNAME/rf-bench/actions)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![No dependencies](https://img.shields.io/badge/dependencies-0-brightgreen)](package.json)
-[![Single file](https://img.shields.io/badge/bundle-one%20HTML%20file-orange)](index.html)
 
-> **Live demo:** https://USERNAME.github.io/rf-bench/ *(after publishing — see [Go live](#go-live-in-2-minutes))*
+> **Live demo:** https://nezarati.github.io/rf-bench/ *(after publishing — see [Go live](#go-live-in-2-minutes))*
 
 ![Sample IEEE export](assets/sample_ieee_span.png)
 *Two-column-span IEEE export (7.16 × 3.10 in, 600 dpi) produced by the built-in figure exporter from the synthetic demo data: vertical legend, 10 pt Arial numerals, centred axis titles, per-curve print symbols and two markers with interpolated (x, y) labels.*
