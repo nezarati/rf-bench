@@ -155,6 +155,49 @@ kbd{background:#1c2735;border:1px solid var(--line2);border-bottom-width:2px;bor
 #helpModal code{font-family:var(--mono);background:#0e1620;padding:0 4px;border-radius:3px;color:#cfe3f7}
 #toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);z-index:300;background:#16202df0;border:1px solid var(--line2);border-radius:9px;padding:9px 16px;font-size:12.5px;display:none;box-shadow:0 8px 26px #000a}
 #toast.on{display:block}
+canvas.chart{touch-action:none}
+body{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+#main{height:calc(100vh - 46px);height:calc(100dvh - 46px)}
+#btnMenu{display:none;align-items:center;justify-content:center;padding:3px 10px;font-size:16px}
+#sideBackdrop{position:fixed;inset:46px 0 0 0;background:#000a;z-index:65;display:none}
+#sideBackdrop.on{display:block}
+@media (max-width:900px){
+  #topbar{overflow-x:auto;overflow-y:hidden;gap:6px;padding:0 8px;scrollbar-width:none}
+  #topbar::-webkit-scrollbar{display:none}
+  #topbar .logo .sub{display:none}
+  #btnMenu{display:inline-flex}
+  #sidebar{position:fixed;left:0;top:46px;bottom:0;z-index:70;width:min(86vw,340px)!important;
+    transform:translateX(-105%);transition:transform .25s ease;box-shadow:10px 0 34px #000a}
+  #sidebar.open{transform:none}
+  #sideResize{display:none}
+  #panels{padding:6px}
+  #tabs{padding:5px 6px 0;-webkit-overflow-scrolling:touch}
+  .tab{padding:7px 10px;font-size:12px}
+  .vstack>.chartbox{min-height:250px}
+  .vstack{gap:8px}
+  .grid2,.toolgrid{grid-template-columns:1fr}
+  .smflex{flex-direction:column}
+  #readout{left:8px;right:8px;bottom:8px;max-width:none;max-height:40vh;overflow:auto}
+  .cbar{opacity:1}
+  .cbar button{padding:5px 9px;font-size:12px}
+  .ctrlbar{gap:8px;padding:6px 8px}
+  .ctrlbar .sep{display:none}
+  table.data{font-size:11.5px}
+  table.sum{font-size:11.5px}
+  .kpi{grid-template-columns:repeat(auto-fit,minmax(120px,1fr))}
+  .kpi .k1 .v{font-size:15px}
+  #maxWrap{inset:46px 0 0 0;padding:6px}
+  #empty .ebox{padding:18px 14px}
+  #empty .keys{grid-template-columns:1fr}
+  .fhead .nm{font-size:12px}
+  input[type=number]{width:80px}
+}
+@media (max-width:480px){
+  #topbar .logo div{font-size:12px}
+  button{padding:5px 8px;font-size:11.5px}
+  .cbar button{padding:4px 7px;font-size:11px}
+  .kpi .k1 .v{font-size:13.5px}
+}
 ::-webkit-scrollbar{width:10px;height:10px}
 ::-webkit-scrollbar-track{background:#0b1119}
 ::-webkit-scrollbar-thumb{background:#26344a;border-radius:6px;border:2px solid #0b1119}
@@ -176,6 +219,7 @@ kbd{background:#1c2735;border:1px solid var(--line2);border-bottom-width:2px;bor
 </head>
 <body>
 <div id="topbar">
+  <button id="btnMenu" title="sidebar">☰</button>
   <div class="logo">
     <svg width="26" height="26" viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="14" stroke="#3fb6ff" stroke-width="1.6"/><circle cx="16" cy="16" r="7" stroke="#22d3a6" stroke-width="1.2" stroke-dasharray="3 3"/><line x1="2" y1="16" x2="30" y2="16" stroke="#2b3a52" stroke-width="1"/><line x1="16" y1="2" x2="16" y2="30" stroke="#2b3a52" stroke-width="1"/><circle cx="22" cy="11" r="2.6" fill="#ffb454"/></svg>
     <div>RF&nbsp;Bench <span class="sub">S-Parameter &amp; Antenna Analysis Suite</span> <span class="pill" style="margin-left:6px" title="build tag: markers are strictly per-diagram from r12 on">r16</span></div>
@@ -294,6 +338,7 @@ kbd{background:#1c2735;border:1px solid var(--line2);border-bottom-width:2px;bor
     </div>
   </div>
 </div>
+<div id="sideBackdrop"></div>
 <div id="maxWrap"><div class="mhead"><span class="mt" id="maxTitle"></span><span class="hint" id="maxHint">maximised — Esc or ✕ restores the layout</span><button id="maxClose">✕ restore</button></div><div id="maxBody"></div></div>
 <div id="readout"></div>
 <div id="dropzone">Drop Touchstone files to load</div>
@@ -1450,6 +1495,42 @@ function drawTooltip(ctx,lines,x,y,pl,pr,pt,pb){
   lines.forEach((l,i)=>ctx.fillText(l,bx+7,by+11+i*13));
 }
 /* interactions (attached once per canvas) */
+function viewSnapshot(ch){return JSON.parse(JSON.stringify(ch.V));}
+function applyPanView(ch,V0,dx,dy){
+  const {pl,pr,pt,pb}=ch.g;const V=ch.V;
+  const fx=(pr-pl),fy=(pb-pt);
+  if(ch.logX){
+    const la=Math.log10(V0.x.lo),lb=Math.log10(V0.x.hi);
+    const sh=-dx/fx*(lb-la);
+    V.x={lo:Math.pow(10,la+sh),hi:Math.pow(10,lb+sh)};
+  }else{const sh=-dx/fx*(V0.x.hi-V0.x.lo);V.x={lo:V0.x.lo+sh,hi:V0.x.hi+sh};}
+  const sh0=dy/fy*(V0.y.hi-V0.y.lo);V.y={lo:V0.y.lo+sh0,hi:V0.y.hi+sh0};
+  if(V0.y2&&V.y2){const sh1=dy/fy*(V0.y2.hi-V0.y2.lo);V.y2={lo:V0.y2.lo+sh1,hi:V0.y2.hi+sh1};}
+}
+function applyZoomAround(ch,mx,my,k,onlyX,onlyY){
+  const {pl,pr,pt,pb}=ch.g;
+  if(!onlyY){
+    const f=ch.dx(clamp(mx,pl,pr));
+    if(ch.logX){const lf=Math.log10(Math.max(f,1e-30));
+      ch.V.x.lo=Math.pow(10,lf+(Math.log10(Math.max(ch.V.x.lo,1e-30))-lf)*k);
+      ch.V.x.hi=Math.pow(10,lf+(Math.log10(Math.max(ch.V.x.hi,1e-30))-lf)*k);}
+    else{ch.V.x.lo=f+(ch.V.x.lo-f)*k;ch.V.x.hi=f+(ch.V.x.hi-f)*k;}
+  }
+  if(!onlyX){
+    const R=ch.V.y;if(R){const v=ch.dy(clamp(my,pt,pb),0);R.lo=v+(R.lo-v)*k;R.hi=v+(R.hi-v)*k;}
+    const R2=ch.V.y2;if(R2){const v2=ch.dy(clamp(my,pt,pb),1);R2.lo=v2+(R2.lo-v2)*k;R2.hi=v2+(R2.hi-v2)*k;}
+  }
+}
+function placeMarkerAt(cv,mx,my,shiftKey){
+  const ch=cv._chart;if(!ch)return;
+  if(ch.cfg&&ch.cfg.noMarker)return;
+  if(mx<ch.g.pl-2||mx>ch.g.pr+2)return;
+  const f=ch.dx(mx);
+  const sl=nearestSeriesLabel(ch,f,my);
+  const cm=ensureChartMarks(cv.id);state.lastMarkChart=cv.id;
+  if(shiftKey){state.m2=f;cm.m2={f,s:sl};}else{state.m1=f;cm.m1={f,s:sl};}
+  syncMarkerInputs();renderActive();
+}
 function attachChartEvents(cv){
   if(cv._bound)return;cv._bound=true;
   const key=cv.id;
@@ -1483,16 +1564,8 @@ function attachChartEvents(cv){
   cv.addEventListener('mousemove',e=>{
     if(!cv._drag)return;const ch=cv._chart;if(!ch)return;
     const {pl,pr,pt,pb}=ch.g;const V=cv._drag.V;const Vn=ch.V;
-    const dpx=e.clientX-cv._drag.x,dpy=e.clientY-cv._drag.y;
-    const fx=(pr-pl),fy=(pb-pt);
-    if(ch.logX){
-      const la=Math.log10(V.x.lo),lb=Math.log10(V.x.hi);
-      const sh=-dpx/fx*(lb-la);
-      Vn.x={lo:Math.pow(10,la+sh),hi:Math.pow(10,lb+sh)};
-    }else{const sh=-dpx/fx*(V.x.hi-V.x.lo);Vn.x={lo:V.x.lo+sh,hi:V.x.hi+sh};}
-    const sh0=dpy/fy*(V.y.hi-V.y.lo);Vn.y={lo:V.y.lo+sh0,hi:V.y.hi+sh0};
-    if(V.y2&&Vn.y2){const sh1=dpy/fy*(V.y2.hi-V.y2.lo);Vn.y2={lo:V.y2.lo+sh1,hi:V.y2.hi+sh1};}
-    Vn.force=false;
+    applyPanView(ch,V,e.clientX-cv._drag.x,e.clientY-cv._drag.y);
+    V.force=false;
     redrawChart(cv);
   });
   cv.addEventListener('wheel',e=>{
@@ -1503,27 +1576,11 @@ function attachChartEvents(cv){
     /* which axes?  plot area = both (like pinching the whole diagram),
        Shift = X only, Alt = Y only, left/right gutter = Y (or right axis),
        top/bottom gutter = X only                                              */
-    let zx=true,zy=true,ax=0;
-    if(e.shiftKey){zy=false;}
-    else if(e.altKey){zx=false;}
-    else if(mx<pl){zx=false;}
-    else if(mx>pr){zx=false;if(ch.V.y2)ax=1;}
-    else if(my>pb||my<pt){zy=false;}
-    if(zx){
-      const f=ch.dx(clamp(mx,pl,pr));
-      if(ch.logX){const lf=Math.log10(Math.max(f,1e-30));
-        ch.V.x.lo=Math.pow(10,lf+(Math.log10(Math.max(ch.V.x.lo,1e-30))-lf)*k);
-        ch.V.x.hi=Math.pow(10,lf+(Math.log10(Math.max(ch.V.x.hi,1e-30))-lf)*k);}
-      else{ch.V.x.lo=f+(ch.V.x.lo-f)*k;ch.V.x.hi=f+(ch.V.x.hi-f)*k;}
-    }
-    if(zy){
-      const R=ax===1?ch.V.y2:ch.V.y;if(R){
-        const v=ch.dy(clamp(my,pt,pb),ax);
-        R.lo=v+(R.lo-v)*k;R.hi=v+(R.hi-v)*k;
-        if(ax===0&&ch.V.y2){const R2=ch.V.y2;const v2=ch.dy(clamp(my,pt,pb),1);
-          R2.lo=v2+(R2.lo-v2)*k;R2.hi=v2+(R2.hi-v2)*k;}
-      }
-    }
+    if(e.shiftKey)applyZoomAround(ch,mx,my,k,true,false);
+    else if(e.altKey)applyZoomAround(ch,mx,my,k,false,true);
+    else if(mx<pl||mx>pr)applyZoomAround(ch,mx,my,k,false,true);
+    else if(my>pb||my<pt)applyZoomAround(ch,mx,my,k,true,false);
+    else applyZoomAround(ch,mx,my,k,false,false);
     redrawChart(cv);
   },{passive:false});
   cv.addEventListener('dblclick',()=>{const ch=cv._chart;if(!ch)return;
@@ -1541,21 +1598,68 @@ function attachChartEvents(cv){
         redrawChart(cv);return;
       }
     }
-    if(ch.cfg&&ch.cfg.noMarker)return;
     if(cv._moved)return;
-    const r=cv.getBoundingClientRect();const mx=e.clientX-r.left;
-    if(mx<ch.g.pl-2||mx>ch.g.pr+2)return;
-    const f=ch.dx(mx);
-    const my=e.clientY-r.top;
-    const sl=nearestSeriesLabel(ch,f,my);
-    const cm=ensureChartMarks(key);
-    state.lastMarkChart=key;
-    if(e.altKey){cm.extra.push({f,s:sl});syncMarkerInputs();renderActive();
-      toast('Marker M'+(cm.extra.length+2)+' added to \u201c'+chartTitle(cv)+'\u201d only at '+(f/U.fDiv).toFixed(4)+' '+U.fName);return;}
-    if(e.shiftKey){state.m2=f;cm.m2={f,s:sl};}else{state.m1=f;cm.m1={f,s:sl};}
-    syncMarkerInputs();renderActive();
-    toast((e.shiftKey?'M2':'M1')+' placed on \u201c'+chartTitle(cv)+'\u201d only \u2014 one point, on the clicked curve');
+    const r=cv.getBoundingClientRect();
+    const mx=e.clientX-r.left,my=e.clientY-r.top;
+    if(e.altKey&&!(ch.cfg&&ch.cfg.noMarker)&&mx>=ch.g.pl-2&&mx<=ch.g.pr+2){
+      const f=ch.dx(mx);const sl=nearestSeriesLabel(ch,f,my);
+      const cm=ensureChartMarks(key);state.lastMarkChart=key;
+      cm.extra.push({f,s:sl});syncMarkerInputs();renderActive();
+      toast('Marker M'+(cm.extra.length+2)+' added to \u201c'+chartTitle(cv)+'\u201d only at '+(f/U.fDiv).toFixed(4)+' '+U.fName);return;
+    }
+    const had=!(ch.cfg&&ch.cfg.noMarker);
+    placeMarkerAt(cv,mx,my,e.shiftKey);
+    if(had)toast((e.shiftKey?'M2':'M1')+' placed on \u201c'+chartTitle(cv)+'\u201d only \u2014 one point, on the clicked curve');
   });
+  /* ---------- touch: 1-finger pan, 2-finger pinch, tap = marker, double-tap = reset ---------- */
+  let tS=null,lastTap=0;
+  const tDist=e=>Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);
+  const tMid=e=>{const r=cv.getBoundingClientRect();
+    return {x:(e.touches[0].clientX+e.touches[1].clientX)/2-r.left,
+            y:(e.touches[0].clientY+e.touches[1].clientY)/2-r.top};};
+  cv.addEventListener('touchstart',e=>{
+    const ch=cv._chart;if(!ch)return;
+    if(e.touches.length===1){
+      tS={mode:'pan',x:e.touches[0].clientX,y:e.touches[0].clientY,t:Date.now(),moved:false,V:viewSnapshot(ch)};
+    }else if(e.touches.length===2){
+      tS={mode:'pinch',d:tDist(e),m:tMid(e),V:viewSnapshot(ch)};
+    }
+  },{passive:true});
+  cv.addEventListener('touchmove',e=>{
+    const ch=cv._chart;if(!ch||!tS)return;
+    e.preventDefault();
+    if(tS.mode==='pan'&&e.touches.length===1){
+      const dx=e.touches[0].clientX-tS.x,dy=e.touches[0].clientY-tS.y;
+      if(Math.abs(dx)+Math.abs(dy)>6)tS.moved=true;
+      if(tS.moved){applyPanView(ch,tS.V,dx,dy);redrawChart(cv);}
+    }else if(tS.mode==='pinch'&&e.touches.length===2){
+      const d=tDist(e);
+      if(d>4){const vs=JSON.parse(JSON.stringify(tS.V));
+        ch.V.x=vs.x;ch.V.y=vs.y;if(vs.y2)ch.V.y2=vs.y2;
+        applyZoomAround(ch,tS.m.x,tS.m.y,tS.d/d,false,false);
+        redrawChart(cv);}
+    }
+  },{passive:false});
+  cv.addEventListener('touchend',e=>{
+    const ch=cv._chart;if(!ch)return;
+    if(tS&&tS.mode==='pan'&&!tS.moved&&Date.now()-tS.t<500&&e.changedTouches.length){
+      const r=cv.getBoundingClientRect();
+      const mx=e.changedTouches[0].clientX-r.left,my=e.changedTouches[0].clientY-r.top;
+      const now=Date.now();
+      if(now-lastTap<320){
+        const c=ch.cfg;const [a,b]=c.xrange||activeWindow();
+        ch.V.x={lo:a,hi:b};ch.V.y=null;ch.V.y2=null;ch.V.force=true;redrawChart(cv);lastTap=0;
+      }else{
+        lastTap=now;
+        const had=!(ch.cfg&&ch.cfg.noMarker);
+        placeMarkerAt(cv,mx,my,false);
+        if(had)toast('M1 placed on \u201c'+chartTitle(cv)+'\u201d \u2014 tap elsewhere for a new point, double-tap to reset');
+      }
+      e.preventDefault();
+    }
+    if(e.touches.length===0)tS=null;
+    else if(e.touches.length===1)tS={mode:'pan',x:e.touches[0].clientX,y:e.touches[0].clientY,t:0,moved:true,V:viewSnapshot(ch)};
+  },{passive:false});
   let downX=0;
   cv.addEventListener('mousedown',e=>{downX=e.clientX;cv._moved=false;});
   cv.addEventListener('mousemove',e=>{if(cv._drag&&Math.abs(e.clientX-downX)>3)cv._moved=true;});
@@ -1822,6 +1926,43 @@ function attachSmithEvents(cv){
     redrawChart(cv);
   },{passive:false});
   cv.addEventListener('dblclick',()=>{if(!cv._smith)return;const V=cv._smith.V;V.c={re:0,im:0};V.s=cv._smith.g.rad/1.16;redrawChart(cv);});
+  let sT=null,sLastTap=0;
+  const sDist=e=>Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);
+  cv.addEventListener('touchstart',e=>{
+    if(!cv._smith)return;
+    if(e.touches.length===1)sT={x:e.touches[0].clientX,y:e.touches[0].clientY,t:Date.now(),moved:false,c:{re:cv._smith.V.c.re,im:cv._smith.V.c.im},s:cv._smith.V.s};
+    else if(e.touches.length===2)sT={pinch:true,d:sDist(e),s:cv._smith.V.s};
+  },{passive:true});
+  cv.addEventListener('touchmove',e=>{
+    if(!cv._smith||!sT)return;e.preventDefault();
+    const V=cv._smith.V;
+    if(sT.pinch&&e.touches.length===2){V.s=clamp(sT.s*(sT.d/Math.max(4,sDist(e))),2,200000);}
+    else if(e.touches.length===1){
+      const dx=e.touches[0].clientX-sT.x,dy=e.touches[0].clientY-sT.y;
+      if(Math.abs(dx)+Math.abs(dy)>6)sT.moved=true;
+      if(sT.moved){V.c={re:sT.c.re-dx/sT.s,im:sT.c.im+dy/sT.s};}
+    }
+    redrawChart(cv);
+  },{passive:false});
+  cv.addEventListener('touchend',e=>{
+    if(!cv._smith)return;
+    if(sT&&!sT.pinch&&!sT.moved&&Date.now()-sT.t<500&&e.changedTouches.length){
+      const now=Date.now();
+      if(now-sLastTap<320){const V=cv._smith.V;V.c={re:0,im:0};V.s=cv._smith.g.rad/1.16;redrawChart(cv);sLastTap=0;}
+      else{
+        sLastTap=now;
+        const r=cv.getBoundingClientRect();
+        state.hover[cv.id]={x:e.changedTouches[0].clientX-r.left,y:e.changedTouches[0].clientY-r.top};
+        redrawChart(cv);
+        const n=cv._smith.nearest;
+        if(n){state.m1=n.f;const cm=ensureChartMarks(cv.id);state.lastMarkChart=cv.id;cm.m1={f:n.f,s:null};
+          syncMarkerInputs();renderActive();
+        toast('M1 placed on \u201c'+chartTitle(cv)+'\u201d at '+(n.f/U.fDiv).toFixed(4)+' '+U.fName);}
+      }
+      e.preventDefault();
+    }
+    if(e.touches.length===0)sT=null;
+  },{passive:false});
   cv.addEventListener('click',e=>{
     if(cv._moved||!cv._smith)return;
     const r=cv.getBoundingClientRect();const mx=e.clientX-r.left,my=e.clientY-r.top;
@@ -2057,6 +2198,7 @@ function buildTabs(){
 }
 function setTab(id){
   state.tab=id;
+  if(window.__closeDrawer&&window.innerWidth<=900)window.__closeDrawer();
   document.querySelectorAll('.tab').forEach(el=>el.classList.toggle('on',el.dataset.tab===id));
   document.querySelectorAll('.panel').forEach(el=>el.classList.remove('on'));
   const p=document.getElementById('p-'+id);if(p)p.classList.add('on');
@@ -4007,6 +4149,12 @@ function updateMarkerReadout(){
     else{const gd=groupDelay(f,t.i,t.j)[indexOfFreq(fm,f.freqs)];rows.push(['  \u03c4',(gd*1e9).toFixed(2)+' ns']);}
   }
   if(state.m2!==null)rows.push(['\u0394f',eng(Math.abs(state.m2-state.m1),3)+'Hz  (\u03bb/2 = '+eng(299792458/(2*Math.abs(state.m2-state.m1)),3)+'m)']);
+  const qs2=f._sum||computeSummary(f);
+  (qs2.bands10||[]).forEach((b,bi)=>{
+    if(fm>=b.f0&&fm<=b.f1){const fcx=Math.sqrt(b.f0*b.f1);
+      rows.push(['in 10 dB band '+(bi+1),(b.f0/U.fDiv).toFixed(3)+'\u2013'+(b.f1/U.fDiv).toFixed(3)+' '+U.fName]);
+      rows.push(['  BW / FBW',eng(b.bw,3)+'Hz / '+f2(100*b.bw/fcx,1)+'%']);}
+  });
   const cmR=state.chartMarks[state.lastMarkChart];
   ((cmR&&cmR.extra)||[]).forEach((v,k)=>{const e=mNorm(v);if(e)rows.push(['M'+(k+3),(e.f/U.fDiv).toFixed(5)+' '+U.fName]);});
   readoutSet('Marker f\u2081 \u00b7 '+esc(f.nick||f.name),rows,f.color);
@@ -4036,6 +4184,12 @@ function bindUI(){
     e.preventDefault();
   });
   $('maxClose').addEventListener('click',restoreMax);
+  const sbEl=$('sidebar'),bdEl=$('sideBackdrop');
+  const closeDrawer=()=>{sbEl.classList.remove('open');bdEl.classList.remove('on');};
+  $('btnMenu').addEventListener('click',()=>{
+    const open=sbEl.classList.toggle('open');bdEl.classList.toggle('on',open);});
+  bdEl.addEventListener('click',closeDrawer);
+  window.__closeDrawer=closeDrawer;
   $('btnHelp').addEventListener('click',()=>showHelp(true));
   $('helpModal').addEventListener('click',e=>{if(e.target.id==='helpModal')showHelp(false);});
   $('btnClear').addEventListener('click',()=>{state.files=[];state.m1=null;state.m2=null;state.views={};
@@ -4213,6 +4367,7 @@ function buildHelp(){
  +'<h3>Export</h3><ul><li>CSV (frequency + dB/angle/Re/Im of every visible trace), JSON summary of all computed metrics.</li>'
  +'<li><b>Figure export (PNG / SVG buttons)</b>: renders every diagram of the active tab as one multi-panel, publication-quality figure — white background, black frame with outward ticks, Helvetica labels, print-safe colour cycle, no screen chrome — in raster PNG (1400 px wide per panel) or true vector SVG.</li>'
  +'<li><b>Band report</b> (left sidebar): every −10 dB band with interpolated f<sub>low</sub>, f<sub>centre</sub>, f<sub>high</sub>, BW and FBW %. Click a band to highlight it on the diagrams; <b>↓ csv</b> exports the whole band table.</li>'
+ +'<li><b>Touch / mobile</b>: the sidebar becomes a \u2630 drawer; on diagrams one finger pans, two fingers pinch-zoom, a tap places M1 on the tapped curve and double-tap resets the view; toolbars, tabs and inputs are finger-sized; the marker readout becomes a bottom sheet and also reports which 10 dB band the marker falls in (with BW/FBW).</li>'
  +'<li>Hovering a diagram shows a live <b>f = …</b> chip at the cursor; <kbd>F</kbd> fits the hovered diagram to the current view (Y within the visible X).</li></ul>'
  +'<p style="margin-top:14px"><button class="primary" onclick="showHelp(false)">Close</button></p>';
 }
