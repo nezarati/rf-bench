@@ -13,9 +13,6 @@ Drop in Touchstone data and get an interactive RF lab: multi-file comparison, Sm
 TDR, stability/gain/noise/mixed-mode analysis, matching-network synthesis and journal-grade
 figure export — **no dependencies, no build step, no server, nothing leaves your browser**.
 
-![Sample IEEE export](assets/sample_ieee_span.png)
-*Built-in IEEE exporter, two-column span (7.16 × 3.10 in @ 600 dpi): vertical legend, 10 pt Arial
-numerals, centred axis titles, per-curve print symbols, markers with interpolated (x, y) labels.*
 
 ---
 
