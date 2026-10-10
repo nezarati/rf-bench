@@ -1,4 +1,4 @@
-# RF Bench — S-Parameter & Antenna Analysis Suite
+# RF Bench - S-Parameter & Antenna Analysis Suite
 
 [![License: CC BY-NC-SA 4.0](https://licensebuttons.net/l/by-nc-sa/4.0/88x31.png)](https://creativecommons.org/licenses/by-nc-sa/4.0/)
 ![Maintained: Yes](https://img.shields.io/badge/Maintained%3F-yes-green.svg)
@@ -60,6 +60,10 @@ or press **Demo data** for three synthetic datasets (dual-band antenna `.s2p`,
 | `1…9` · `0` · `O` · `Esc` | tabs · Tools · open files · clear markers |
 | Legend row click | hide / show that trace |
 | Hover a band shade | start / stop / centre / BW / FBW / min detail card |
+| **Touch:** 1 finger drag | pan the diagram (X+Y) |
+| **Touch:** 2 fingers pinch | zoom around the pinch centre |
+| **Touch:** tap | M1 on the tapped curve of that diagram |
+| **Touch:** double-tap | reset the view |
 
 ## 📄 Touchstone support
 
@@ -117,6 +121,16 @@ Live at `https://nezarati.github.io/rf-bench/index.html` within a minute.
 **Other hosts** — Netlify Drop (drag the folder on [app.netlify.com/drop](https://app.netlify.com/drop)),
 `npx vercel`, Cloudflare Pages (empty build command, output `/`), or any web server
 (`python3 -m http.server`). Uploading `index.html` alone is enough — it is fully self-contained.
+
+## 📱 Mobile friendly
+
+Below 900 px the layout reflows: the sidebar becomes a **☰ drawer** (backdrop tap closes it, it also
+auto-closes when you switch tabs), the top bar scrolls horizontally, toolbars/tabs/inputs grow to
+finger size, grids collapse to one column and the marker readout becomes a **bottom sheet** that also
+reports which −10 dB band the marker sits in. Diagrams are fully touch-driven (pan / pinch / tap-marker /
+double-tap reset, `touch-action` scoped so the page still scrolls normally), and everything else —
+including the IEEE SVG/PNG exporters and the TDR — works unchanged. Uses `100dvh` so iOS Safari
+toolbars don't clip the layout.
 
 ## 🌍 Browser support
 
